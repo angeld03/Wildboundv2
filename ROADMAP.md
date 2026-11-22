@@ -29,9 +29,9 @@ Mod de Minecraft tipo RPG para **Fabric 26.3**:
 
 ## Estado actual
 
-- Fase actual: **0 — Cimientos**
-- Última tarea completada: `0.2`/`0.3` — plantilla Gradle + código fuente mínimo para Fabric 26.3.
-- Próxima tarea: `0.4` — compilar y arrancar el mod en un cliente real (requiere hacerlo en tu equipo, ver más abajo).
+- Fase actual: **1 — Núcleo RPG** (la 0.4, compilar en tu equipo, queda pendiente para cuando tengas ocasión; no bloquea seguir escribiendo código)
+- Última tarea completada: `1.1`–`1.5` — datos de progresión del jugador, fórmula de XP, persistencia, fuentes de XP configurables y comando de depuración.
+- Próxima tarea: Fase 2 — registro de elementos y habilidades desde JSON.
 
 ## Checklist
 
@@ -42,11 +42,12 @@ Mod de Minecraft tipo RPG para **Fabric 26.3**:
 - [ ] 0.4 Mod arranca en cliente y servidor sin crash (hazlo en tu equipo con IntelliJ/Gradle, ver `docs/COMPILAR.md`)
 
 ### Fase 1 — Núcleo RPG
-- [ ] 1.1 Capability de datos del jugador (nivel, XP, elemento activo, slots de habilidad)
-- [ ] 1.2 Fórmula de XP y subida de nivel, con evento al subir
-- [ ] 1.3 Persistencia (NBT / Codec) al desconectar y reconectar
-- [ ] 1.4 Fuente de XP (matar mobs, minar, etc.) configurable en JSON
-- [ ] 1.5 Comando de depuración `/wildbound level set|xp add`
+- [x] 1.1 Datos de progresión del jugador (nivel, XP, elemento activo) — `PlayerProgression`
+- [x] 1.2 Fórmula de XP y subida de nivel, con evento al subir — `PlayerProgression#addXp`, `LevelUpCallback`
+- [x] 1.3 Persistencia por jugador vía `PersistentState` (Codec) — `ProgressionState`, se guarda en el overworld
+- [x] 1.4 Fuentes de XP configurables en JSON (`config/wildbound/xp_sources.json`): matar mobs, minar bloques; preparado para añadir misiones/jefes sin tocar código — `XpSourcesConfig`
+- [x] 1.5 Comando de depuración `/wildbound level get|set|xp add`
+- [ ] 1.6 `[PENDIENTE DE PRUEBA]` Verificar en tu equipo que los eventos de Fabric API usados existen con esos nombres en 26.3 (`ServerLivingEntityEvents.AFTER_DEATH`, `PlayerBlockBreakEvents.AFTER`, `CommandRegistrationCallback`) — ver nota en **Decisiones**.
 
 ### Fase 2 — Sistema de elementos y habilidades
 - [ ] 2.1 Registro de elementos (datos en JSON: nombre, color, icono, habilidades)
@@ -99,13 +100,37 @@ Mod de Minecraft tipo RPG para **Fabric 26.3**:
   - El id de mod de Fabric API pasó de `fabric` a `fabric-api`.
   - Algunas clases de Fabric API se renombraron a los nombres oficiales de Mojang (p. ej. `ItemGroupEvents` → `CreativeModeTabEvents`); hay que comprobar nombres de clase al usar la API, no dar por bueno lo que yo recuerde de versiones anteriores.
   - Fuentes: [fabricmc.net/2026/03/14/261.html](https://fabricmc.net/2026/03/14/261.html), [fabricmc.net/2026/09/15/263.html](https://fabricmc.net/2026/09/15/263.html), [docs.fabricmc.net — Migrating Mappings](https://docs.fabricmc.net/26.2/develop/porting/mappings/), [docs.fabricmc.net — Porting to 26.1](https://docs.fabricmc.net/26.1.2/develop/porting/), [Fabric API 0.155.0+26.3 en Modrinth](https://modrinth.com/mod/fabric-api/version/0.155.0+26.3).
+  - **Tabla de nombres de clase (Yarn → oficial Mojang), confirmada o deducida con alta confianza.** Úsala al escribir o corregir código; si el compilador se queja de un nombre que no está aquí, añádelo a esta tabla cuando lo averigües:
+
+    | Antes (Yarn) | Ahora (Mojang, 26.x) | Confirmado |
+    |---|---|---|
+    | `World` | `Level` (`ServerLevel`/`ClientLevel`) | Sí (docs oficiales) |
+    | `PlayerEntity` | `Player` | Sí (javadoc `PlayerBlockBreakEvents.After`) |
+    | `ServerPlayerEntity` | `ServerPlayer` | Alta confianza (no verificado literal) |
+    | `MinecraftClient` | `Minecraft` | Sí (docs oficiales) |
+    | `KeyBinding` | `KeyMapping` | Sí (docs oficiales) |
+    | `KeyBindingHelper` (paquete `client/keybinding/v1`) | `KeyMappingHelper` (paquete `client/keymapping/v1`) | Sí (tabla de migración oficial) |
+    | `InputUtil` | `InputConstants` (`com.mojang.blaze3d.platform`) | Sí (docs oficiales) |
+    | `Identifier` | `ResourceLocation` (`net.minecraft.resources`) | Alta confianza |
+    | `Text` | `Component` (`net.minecraft.network.chat`) | Sí (ejemplo de código oficial) |
+    | `NbtCompound` | `CompoundTag` | Alta confianza (no usado todavía en el código) |
+    | `PersistentStateManager` | `DimensionDataStorage` | Alta confianza |
+    | `PersistentState` | `SavedData` | Alta confianza (no se usa: ver nota de persistencia en Fase 1) |
+    | `Registry`/registros estáticos | `BuiltInRegistries` (`net.minecraft.core.registries`) | Alta confianza |
+    | `ServerCommandSource` | `CommandSourceStack` | Alta confianza (no se nombra explícitamente en el código: se infiere por lambda) |
+    | `CommandManager` (clase de ayuda de comandos) | `Commands` (`net.minecraft.commands`) | Alta confianza |
+    | `ItemGroupEvents` | `CreativeModeTabEvents` | Sí (anuncio oficial) |
+
+    "Alta confianza" = deducido de la nomenclatura pública de Mojang (usada desde hace años por NeoForge/Mojmap), no verificado contra el javadoc exacto de Fabric API 0.155.0+26.3 porque este entorno no puede compilar. Corrígelo si el compilador dice lo contrario y actualiza esta tabla.
   - **Importante:** no he podido compilar esta plantilla en este entorno (sin acceso de red para Gradle/Maven). Los valores de `gradle.properties` (`loader_version=0.19.5`, `loom_version=1.17`, `fabric_version=0.155.0+26.3`) están tomados de esas fuentes oficiales pero **debes confirmarlos en https://fabricmc.net/develop antes de compilar**, porque pueden publicarse versiones de parche más nuevas entre esta sesión y cuando tú compiles.
+- 2026-11-22: **Lista definitiva de los 16 elementos** (aceptada por el usuario): agua, fuego, tierra, aire, rayo, hielo, veneno, sombra, luz, sangre, arena, metal, naturaleza, vacío, tiempo, psíquico. El elemento de arranque/ejemplo es **agua** (Water Bolt). El orden de implementación del resto se decide en la Fase 6, elemento a elemento.
+- 2026-11-22: **Fuentes de XP** (decisión del usuario: "todas esas, ya iremos añadiendo"): matar mobs, minar bloques, misiones y jefes, **todo configurable en JSON** y pensado para poder añadir más fuentes sin tocar código central (ver 1.4). No se cierra la lista: el sistema debe quedar abierto a nuevas fuentes.
 
 ## Pendiente de decidir con el usuario
 
-- Lista definitiva de los 16–18 elementos (propuesta: agua, fuego, tierra, aire, rayo, hielo, veneno, sombra, luz, sangre, arena, metal, naturaleza, vacío, tiempo, psíquico).
-- Mecánica de subida de nivel: ¿XP por mobs, por bloques, o ambas?
 - Licencia del repositorio.
+- Orden de implementación de los 16 elementos a partir del segundo (el primero es Agua, por el ejemplo de Water Bolt).
+- Nombres y efectos concretos de las 10 habilidades de cada elemento (se acuerdan elemento a elemento, antes de implementarlo, en la Fase 6).
 
 ## Limitaciones conocidas
 
