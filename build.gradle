@@ -1,0 +1,65 @@
+plugins {
+	id 'net.fabricmc.fabric-loom' version "${loom_version}"
+	id 'maven-publish'
+}
+
+version = project.mod_version
+group = project.maven_group
+
+base {
+	archivesName = project.archives_base_name
+}
+
+repositories {
+	// Añade repositorios de mods de terceros aquí si se necesitan.
+}
+
+loom {
+	splitEnvironmentSourceSets()
+
+	mods {
+		"wildbound" {
+			sourceSet sourceSets.main
+			sourceSet sourceSets.client
+		}
+	}
+}
+
+dependencies {
+	// Minecraft 26.x se distribuye sin ofuscar (sin Yarn/mapeos de terceros),
+	// por lo que no se declara una dependencia "mappings" en este bloque.
+	minecraft "com.mojang:minecraft:${project.minecraft_version}"
+	modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
+
+	modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
+}
+
+processResources {
+	inputs.property "version", project.version
+
+	filesMatching("fabric.mod.json") {
+		expand "version": project.version
+	}
+}
+
+tasks.withType(JavaCompile).configureEach {
+	it.options.release = 25
+}
+
+java {
+	// Minecraft 26.x requiere Java 25 (ver gradle.properties / docs de Fabric).
+	toolchain {
+		languageVersion = JavaLanguageVersion.of(25)
+	}
+	withSourcesJar()
+}
+
+jar {
+	from("LICENSE") {
+		rename { "${it}_${project.base.archivesName.get()}" }
+	}
+}
+
+// [PENDIENTE DE PRUEBA] No se ha ejecutado "gradle build" en este entorno
+// (sin acceso de red para descargar Gradle/Loom/Fabric API). Verifica que
+// compila antes de empezar la Fase 1.

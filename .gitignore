@@ -1,0 +1,19 @@
+# Gradle
+.gradle/
+build/
+out/
+classes/
+
+# IDE
+.idea/
+*.iml
+.vscode/
+.classpath
+.project
+.settings/
+
+# Ejecuciones locales de Minecraft
+run/
+
+# Sistema
+.DS_Store

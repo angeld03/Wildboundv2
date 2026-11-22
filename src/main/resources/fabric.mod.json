@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "id": "wildbound",
+  "version": "${version}",
+  "name": "Wildbound",
+  "description": "Mod RPG con sistema de niveles, elementos y habilidades cinematicas.",
+  "authors": [
+    "angeld03"
+  ],
+  "contact": {
+    "sources": "https://github.com/angeld03/wildboundv2"
+  },
+  "license": "ARR",
+  "environment": "*",
+  "entrypoints": {
+    "main": [
+      "com.wildbound.Wildbound"
+    ],
+    "client": [
+      "com.wildbound.client.WildboundClient"
+    ]
+  },
+  "mixins": [
+    "wildbound.mixins.json",
+    {
+      "config": "wildbound.client.mixins.json",
+      "environment": "client"
+    }
+  ],
+  "depends": {
+    "fabricloader": ">=0.19.5",
+    "minecraft": "~26.3",
+    "java": ">=25",
+    "fabric-api": "*"
+  }
+}
